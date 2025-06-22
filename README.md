@@ -1,0 +1,1 @@
+Streaming Kraken candles to parquet files
