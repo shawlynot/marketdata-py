@@ -1,12 +1,12 @@
-import asyncio
 import json
+from typing import AsyncGenerator
 from websockets.asyncio.client import connect
 
-async def run():
-    websocket = await subscribe()
-    await listen(websocket)
+async def subscribe_and_listen():
+    websocket = await _subscribe()
+    return _listen(websocket)
         
-async def subscribe():
+async def _subscribe():
     websocket = await connect("wss://ws.kraken.com/v2")
     await websocket.send(json.dumps({
         "method": "subscribe",
@@ -19,10 +19,9 @@ async def subscribe():
     print(message)
     return websocket
 
-async def listen(websocket):
+async def _listen(websocket) -> AsyncGenerator[list[dict]]:
     while True:
-        message = await websocket.recv()
-        print(message)
-
-if __name__ == "__main__":
-    asyncio.run(run())
+        received = await websocket.recv() # type: ignore
+        data: dict = json.loads(received)
+        if (data.get("channel") == "ohlc" and data.get("type") in ("update", "snapshot")):
+            yield data["data"]
